@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block content %}
+    <body>
+        <h1>Home Page</h1>
+        <ul>
+            {% for post in posts %}<li>{{ post.id }} {{ post.author }} {{ post.title }} {{ post.date_posted }}</li>{% endfor %}
+        </ul>
+    </body>
+{% endblock content %}
