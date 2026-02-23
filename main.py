@@ -1,9 +1,13 @@
+from datetime import datetime
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from schemas import PostCreate, PostResponse
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), "static")
@@ -54,17 +58,28 @@ def post_page(request: Request, post_id: int):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 
-@app.get("/api/posts")
-def get_posts() -> list[dict[str, int | str]]:
+@app.get("/api/posts", response_model=list[PostResponse])
+def get_posts():
     return posts
 
 
-@app.get("/api/post/{post_id}")
-def get_post(post_id: int) -> dict[str, int | str]:
+@app.get("/api/post/{post_id}", response_model=PostResponse)
+def get_post(post_id: int):
     for post in posts:
         if post["id"] == post_id:
             return post
     raise HTTPException(status.HTTP_404_NOT_FOUND, "Post not found")
+
+
+@app.post("/api/post", status_code=status.HTTP_201_CREATED)
+def create_post(post: PostCreate):
+    post_ = {
+        **post.model_dump(),
+        "id": max([p["id"] for p in posts]) + 1 if posts else 1,
+        "date_posted": datetime.now().strftime("%F %T"),
+    }
+    posts.append(post_)
+    return {"message": "New post created", "post:": post_}
 
 
 @app.exception_handler(StarletteHTTPException)
