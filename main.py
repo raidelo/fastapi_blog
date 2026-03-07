@@ -19,17 +19,19 @@ f = Faker()
 templates = Jinja2Templates(directory="templates")
 
 
-def gen_rand_post(id: int) -> dict[str, str | int]:
-    return {
-        "id": id,
-        "author": f"{f.name()} {f.last_name()}",
-        "title": f.text(30),
-        "content": f.text(100),
-        "date_posted": f.date(),
-    }
+def gen_rand_post(id: int) -> PostResponse:
+    return PostResponse.model_validate(
+        {
+            "id": id,
+            "author": f"{f.name()} {f.last_name()}",
+            "title": f.text(30),
+            "content": f.text(100),
+            "date_posted": f.date_time(),
+        }
+    )
 
 
-posts: list[dict] = [
+posts: list[PostResponse] = [
     gen_rand_post(1),
     gen_rand_post(2),
     gen_rand_post(3),
@@ -49,8 +51,8 @@ def home(request: Request):
 @app.get("/post/{post_id}", include_in_schema=False)
 def post_page(request: Request, post_id: int):
     for post in posts:
-        if post["id"] == post_id:
-            title = post["title"][:50]
+        if post.id == post_id:
+            title = post.title[:50]
             return templates.TemplateResponse(
                 request, "post.html", {"post": post, "title": title}
             )
@@ -66,18 +68,20 @@ def get_posts():
 @app.get("/api/post/{post_id}", response_model=PostResponse)
 def get_post(post_id: int):
     for post in posts:
-        if post["id"] == post_id:
+        if post.id == post_id:
             return post
     raise HTTPException(status.HTTP_404_NOT_FOUND, "Post not found")
 
 
 @app.post("/api/post", status_code=status.HTTP_201_CREATED)
 def create_post(post: PostCreate):
-    post_ = {
-        **post.model_dump(),
-        "id": max([p["id"] for p in posts]) + 1 if posts else 1,
-        "date_posted": datetime.now().strftime("%F %T"),
-    }
+    post_ = PostResponse.model_validate(
+        {
+            **post.model_dump(),
+            "id": max([p.id for p in posts]) + 1 if posts else 1,
+            "date_posted": datetime.now(),
+        }
+    )
     posts.append(post_)
     return {"message": "New post created", "post:": post_}
 

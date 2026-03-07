@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field, ConfigDict
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PostBase(BaseModel):
@@ -15,4 +17,4 @@ class PostResponse(PostBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    date_posted: str
+    date_posted: datetime
