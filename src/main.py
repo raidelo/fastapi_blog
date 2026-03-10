@@ -9,9 +9,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from database import Base, engine, get_db
-from models import Post
-from schemas import PostCreate, PostResponse
+from .database import Base, engine, get_db
+from .models import Post
+from .schemas import PostCreate, PostResponse
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), "static")

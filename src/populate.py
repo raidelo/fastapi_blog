@@ -6,10 +6,10 @@ from datetime import datetime
 from faker import Faker
 from sqlalchemy import insert, select
 
-from constants import MAX_TITLE_LENGTH
-from database import SessionMaker
-from models import Post
-from schemas import PostCreate
+from .constants import MAX_TITLE_LENGTH
+from .database import SessionMaker
+from .models import Post
+from .schemas import PostCreate
 
 
 def main() -> None:

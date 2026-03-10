@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from constants import MAX_AUTHOR_LENGTH, MAX_TITLE_LENGTH
+from .constants import MAX_AUTHOR_LENGTH, MAX_TITLE_LENGTH
 
 
 class PostBase(BaseModel):
