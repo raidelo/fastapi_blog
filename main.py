@@ -1,89 +1,83 @@
-from datetime import datetime
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from database import Base, engine, get_db
+from models import Post
 from schemas import PostCreate, PostResponse
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), "static")
 
-# { Start fake data section
-from faker import Faker  # noqa: E402
-
-f = Faker()
 templates = Jinja2Templates(directory="templates")
 
-
-def gen_rand_post(id: int) -> PostResponse:
-    return PostResponse.model_validate(
-        {
-            "id": id,
-            "author": f"{f.name()} {f.last_name()}",
-            "title": f.text(30),
-            "content": f.text(100),
-            "date_posted": f.date_time(),
-        }
-    )
+type DBSession = Annotated[Session, Depends(get_db)]
 
 
-posts: list[PostResponse] = [
-    gen_rand_post(1),
-    gen_rand_post(2),
-    gen_rand_post(3),
-]
-
-# } End fake data section
+Base.metadata.create_all(bind=engine)
 
 
 @app.get("/", include_in_schema=False, name="home")
 @app.get("/posts", include_in_schema=False, name="posts")
-def home(request: Request):
+def home(request: Request, db: DBSession):
+    posts = [
+        PostResponse.model_validate(p) for p in db.execute(select(Post)).scalars().all()
+    ]
     return templates.TemplateResponse(
-        request, "home.html", {"posts": posts, "title": "Home"}
+        request,
+        "home.html",
+        {"posts": posts, "title": "Home"},
     )
 
 
 @app.get("/post/{post_id}", include_in_schema=False)
-def post_page(request: Request, post_id: int):
-    for post in posts:
-        if post.id == post_id:
-            title = post.title[:50]
-            return templates.TemplateResponse(
-                request, "post.html", {"post": post, "title": title}
-            )
-
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+def post_page(request: Request, post_id: int, db: DBSession):
+    post = db.execute(select(Post).where(Post.id == post_id)).scalar_one_or_none()
+    if post is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
+        )
+    ret_post = PostResponse.model_validate(post)
+    title = ret_post.title[:50]
+    return templates.TemplateResponse(
+        request,
+        "post.html",
+        {"post": ret_post, "title": title},
+    )
 
 
 @app.get("/api/posts", response_model=list[PostResponse])
-def get_posts():
-    return posts
+def get_posts(db: DBSession):
+    posts = db.execute(select(Post)).scalars().all()
+    return [PostResponse.model_validate(p) for p in posts]
 
 
 @app.get("/api/post/{post_id}", response_model=PostResponse)
-def get_post(post_id: int):
-    for post in posts:
-        if post.id == post_id:
-            return post
-    raise HTTPException(status.HTTP_404_NOT_FOUND, "Post not found")
+def get_post(post_id: int, db: DBSession):
+    post = db.execute(select(Post).where(Post.id == post_id)).scalar_one_or_none()
+    if post is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
+        )
+    return PostResponse.model_validate(post)
 
 
 @app.post("/api/post", status_code=status.HTTP_201_CREATED)
-def create_post(post: PostCreate):
-    post_ = PostResponse.model_validate(
-        {
-            **post.model_dump(),
-            "id": max([p.id for p in posts]) + 1 if posts else 1,
-            "date_posted": datetime.now(),
-        }
-    )
-    posts.append(post_)
-    return {"message": "New post created", "post:": post_}
+def create_post(post: PostCreate, db: DBSession):
+    new_post = Post(**post.model_dump())
+    db.add(new_post)
+    db.commit()
+    return {
+        "message": "New post created",
+        "post:": PostResponse.model_validate(new_post),
+    }
 
 
 @app.exception_handler(StarletteHTTPException)
