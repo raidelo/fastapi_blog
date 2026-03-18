@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import DateTime, Integer, String, Text, event, func
 from sqlalchemy.orm import Mapped, MappedAsDataclass, QueryContext, mapped_column
 
-from database import Base
+from fastapi_blog.database import Base
 
 
 class Post(MappedAsDataclass, Base):
