@@ -1,7 +1,7 @@
 [project]
 name = "fastapi-blog"
 version = "0.1.0"
-description = "Add your description here"
+description = "A simple blog application built with FastAPI."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = ["fastapi[standard]", "sqlalchemy"]
