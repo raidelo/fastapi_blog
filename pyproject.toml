@@ -4,12 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "fastapi[standard]",
-    "sqlalchemy",
-]
+dependencies = ["fastapi[standard]", "sqlalchemy"]
 
 [dependency-groups]
-dev = [
-    "faker>=40.5.1",
-]
+dev = ["faker>=40.5.1"]
+
+[project.scripts]
+fastapi_blog = "fastapi_blog.cli:main"
