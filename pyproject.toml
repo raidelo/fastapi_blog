@@ -11,3 +11,6 @@ dev = ["faker>=40.5.1"]
 
 [project.scripts]
 fastapi_blog = "fastapi_blog.cli:main"
+
+[tool.fastapi]
+entrypoint = "fastapi_blog.main:app"
